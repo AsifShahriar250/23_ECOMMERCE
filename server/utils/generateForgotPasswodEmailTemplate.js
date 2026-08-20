@@ -5,7 +5,8 @@ export const generateEmailTemplate = (resetPasswordUrl) => {
   <p style="font-size: 16px; color: #ccc;">Dear User,</p>
   <p style="font-size: 16px; color: #ccc;">You requested to reset your password. Please click the button below to proceed:</p>
   <div style="text-align: center; margin: 20px 0;">
-  <a href="${resetPasswordUrl}" style="display: inline-block; font-size: 16px; font-weight: bold; color: #000; text-decoration: none; padding: 12px 20px; border: 1px solid #fff; border-radius: 5px; background-color: #fff;"> Reset Password </a>
+  <a href="${resetPasswordUrl}" style="display: inline-block; font-size: 16px; font-weight: bold; color: #000; text-decoration: none; padding: 12px 20px; border: 1px solid #fff; border-radius: 5px; background-color: #fff;"> Reset Password 
+  </a>
 </div>
   <p style="font-size: 16px; color: #ccc;">If you did not request this, please ignore this email. The link will expire in 10 minutes.</p>
   <p style="font-size: 16px; color: #ccc;">If the button above doesn’t work, copy and paste the following URL into your browser:</p>
