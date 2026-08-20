@@ -9,7 +9,7 @@ export const isAuthenticated = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Please login to access this resource.", 401));
   }
   const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-  const user = await database.query("SELECT * FROM user WHERE id = $1", [
+  const user = await database.query("SELECT * FROM user WHERE user_id = $1", [
     decoded.id,
   ]);
   req.user = user.rows[0];
