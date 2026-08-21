@@ -2,7 +2,11 @@ import ErrorHandler from "../middlewares/errorMiddleware.js";
 import { catchAsyncErrors } from "../middlewares/catchAsyncError.js";
 import database from "../database/db.js";
 import bcrypt from "bcryptjs";
+import { sendEmail } from "../utils/sentEmail.js";
 import { sendToken } from "../utils/jwtToken.js";
+import { generateResetPasswordToken } from "../utils/generateResetPasswordToken.js";
+import { generateEmailTemplate } from "../utils/generateForgotPasswordEmailTemplate.js";
+import crypto from "crypto";
 
 export const register = catchAsyncErrors(async (req, res, next) => {
   const { name, email, password } = req.body;
@@ -83,11 +87,33 @@ export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
     generateResetPasswordToken();
 
   await database.query(
-    `UPDATE users SET reset_password_token = $1, reset_password_expire  = to_timestamp($2) WHERE email = $3`,
+    `UPDATE users SET reset_password_token = $1, reset_password_expires = to_timestamp($2) WHERE email = $3`,
     [hashedToken, resetPasswordExpireTime / 1000, email],
   );
 
+  
   const resetPasswordUrl = `${frontendUrl}/password/reset/${resetToken}`;
   const message = generateEmailTemplate(resetPasswordUrl);
 
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Ecommerce Password Recovery",
+      message,
+    });
+    res.status(200).json({
+      success: true,
+      message: `Email sent to ${user.email} successfully.`
+    });
+  } catch (error) {
+    await database.query(
+      `UPDATE users SET reset_password_token = NULL, 
+      reset_password_expires = NULL 
+      WHERE email = $1`,
+      [email],
+    );
+    return next(new ErrorHandler("Email could not be sent.", 500));
+  }
+
 });
+
