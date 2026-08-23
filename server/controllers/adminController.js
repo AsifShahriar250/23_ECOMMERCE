@@ -51,5 +51,5 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
 });
 
 export const dashboardStats = catchAsyncErrors(async (req, res, nest) => {
-  c
+  
 });
