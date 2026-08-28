@@ -1,4 +1,9 @@
-import app from "./app.js";
+import dotenv from "dotenv";
+
+dotenv.config({ path: "./config/config.env" });
+
+const { default: app } = await import("./app.js");
+
 import {v2 as cloudinary} from "cloudinary"
 
 cloudinary.config({

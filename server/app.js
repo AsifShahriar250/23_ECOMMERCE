@@ -8,10 +8,13 @@ import { errorMiddleware } from "./middlewares/errorMiddleware.js";
 import authRouter from "./router/authRoutes.js";
 import productRouter from "./router/productRoutes.js";
 import adminRouter from "./router/adminRoutes.js";
-import stripe from "stripe";
+import orderRouter from "./router/orderRoutes.js";
+import Stripe from "stripe";
+import database from "./database/db.js";
 
 const app = express();
 config({ path: "./config/config.env" });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 app.use(
   cors({
@@ -22,7 +25,7 @@ app.use(
 );
 
 app.post(
-  "/api/vi/payment/webhook",
+  "/api/v1/payment/webhook",
   express.raw({ type: "application/json" }),
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
@@ -40,30 +43,37 @@ app.post(
     //handelling the event
 
     if (event.type === "payment_intent.succeeded") {
-      const paymentIntent_client_secret = event.data.object.client_secret;
+      const paymentIntentId = event.data.object.id;
       try {
         //finding and updating payment
         const updatedPaymentStatus = "Paid";
         const paymentTableUpdateResult = await database.query(
           `
-      UPDATE payments SET payment_status = $1 WHERE payment_intent_id = $2 RETURNING *`,
-          [updatedPaymentStatus, paymentIntent_client_secret],
+      UPDATE payments
+      SET payment_status = $1
+      WHERE payment_intent_id = $2 AND payment_status <> $1
+      RETURNING *`,
+          [updatedPaymentStatus, paymentIntentId],
         );
-        constorderTableUpdateResult = await database.query(
+        if (paymentTableUpdateResult.rows.length === 0) {
+          return res.status(200).send({ received: true });
+        }
+
+        await database.query(
           `
-          UPDATE orders SET paid_at = NOW() WHERE id = RETURNING *`,
+          UPDATE orders SET paid_at = NOW() WHERE id = $1 RETURNING *`,
           [paymentTableUpdateResult.rows[0].order_id],
         );
 
         //reduce the stock of the products in the order
         const orderId = paymentTableUpdateResult.rows[0].order_id;
-        const { order_items } = await database.query(
+        const { rows: orderItems } = await database.query(
           `
           SELECT product_id, quantity FROM order_items WHERE order_id = $1`,
           [orderId],
         );
         // for each order item, reduce the stock of the product
-        for (const item of orderedItems) {
+        for (const item of orderItems) {
           await database.query(
             `
             UPDATE products SET stock = stock - $1 WHERE id = $2`,
@@ -92,6 +102,7 @@ app.use(
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/product", productRouter);
 app.use("/api/v1/admin", adminRouter);
+app.use("/api/v1/order", orderRouter);
 
 createTables();
 
