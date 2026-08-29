@@ -37,10 +37,11 @@ app.post(
         process.env.STRIPE_WEBHOOK_SECRET,
       );
     } catch (error) {
+      console.error(" Webhook Signature Error:", error.message);
       return res.status(400).send(`Webhook Error: ${error.message || error}`);
     }
 
-    //handelling the event
+    console.log("Stripe event received:", event.type);
 
     if (event.type === "payment_intent.succeeded") {
       const paymentIntentId = event.data.object.id;
@@ -81,11 +82,12 @@ app.post(
           );
         }
       } catch (error) {
-        return res.status(500).send(`Error updating paid_at timestamp in orders table.`)
+        console.error("Webhook database error:", error);
+        return res.status(500).send("Webhook processing failed.");
       }
     }
     res.status(200).send({ received: true });
-  }
+  },
 );
 
 app.use(cookieParser());

@@ -651,3 +651,4 @@ export const fetchAIFilteredProducts = catchAsyncErrors(
     });
   },
 );
+
